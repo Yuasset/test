@@ -136,6 +136,16 @@ function W.QuestEvent(stage)
     elseif stage == "reward" then description = GetRewardText and GetRewardText() or ""
     else description = GetQuestText and GetQuestText() or "" end
     local objective = GetObjectiveText and GetObjectiveText() or ""
+    if objective == "" and GetQuestLogSelection and GetQuestLogTitle and GetQuestLogQuestText then
+        local selected = GetQuestLogSelection()
+        if selected and selected > 0 then
+            local selectedTitle = GetQuestLogTitle(selected)
+            if selectedTitle == title then
+                local _, logObjective = GetQuestLogQuestText()
+                objective = logObjective or ""
+            end
+        end
+    end
     W.questContext = {title = title or "", description = description or "", objectives = objective or "", id = id, stage = stage, parent = QuestFrame}
     W.readerDismissed = false
     W.Later(0.08, function() W.RenderQuest(W.questContext) end, "quest")

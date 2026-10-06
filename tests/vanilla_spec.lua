@@ -169,6 +169,13 @@ check(string.find(W.reader.body:GetText(), "Original completion", 1, true), "Eng
 W.readerEnglish = false
 QuestFrame:Hide(); QuestLogFrame:Show(); W.QuestLog()
 check(W.questContext.stage == "log" and W.questContext.resolvedID == 7, "Quest log integration failed")
+local originalTitle, originalObjective = title, objective
+local originalObjectiveAPI = GetObjectiveText
+title = "Duplicate"; objective = "Second objective extended"
+GetObjectiveText = function() return "" end
+dispatch("QUEST_PROGRESS"); tick(0.2)
+check(W.questContext.resolvedID == 12, "Quest log objective fallback failed on turn-in")
+title = originalTitle; objective = originalObjective; GetObjectiveText = originalObjectiveAPI
 W.ShowOptions(); check(W.options:IsShown(), "Settings failed to open")
 W.ShowOptions(); check(not W.options:IsShown(), "Settings failed to close")
 W.ShowLog(); check(W.logFrame:IsShown(), "Diagnostics window failed")

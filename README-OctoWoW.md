@@ -54,6 +54,6 @@ Oyun ve launcher kapalıyken `git -C 'C:\Games\WOW\Interface\Addons\WoWTR' switc
 
 ## Veri ve kaynaklar
 
-Türkçe çeviri verileri ve fontlar özgün WoWTR paketine aittir; mevcut hak ve sahiplik koşulları geçerlidir. İngilizce görev adları, ID'ler ve hedef başlangıçları için olgusal eşleştirme indeksi [QuestTranslator-Vanilla-Turkish / QuestList.lua](https://github.com/devteabct78/QuestTranslator-Vanilla-Turkish/blob/main/QuestList.lua) verisinden üretilmiştir. Bu projenin oyun kodu veya Türkçe çevirileri kopyalanmamıştır.
+Türkçe çeviri verileri ve fontlar özgün WoWTR paketine aittir; mevcut hak ve sahiplik koşulları geçerlidir. İngilizce görev adları, ID'ler ve hedef başlangıçları için olgusal eşleştirme indeksi [QuestTranslator-Vanilla-Turkish / QuestList.lua](https://github.com/devteabct78/QuestTranslator-Vanilla-Turkish/blob/main/QuestList.lua) verisinden üretilmiştir. Eksik İngilizce görev adları ve ID'leri [pfQuest](https://github.com/shagu/pfQuest/blob/master/db/enUS/quests.lua) verisinden eklenmiştir. Bu projelerin oyun kodu veya Türkçe çevirileri kopyalanmamıştır.
 
 `tools/build_vanilla_data.lua` verileri yeniden üretir. Lua 5.0 ile repo kökünde çalıştırın. `tests/vanilla_spec.lua` Vanilla API biçimini taklit ederek görev eşleştirmesini, olay akışlarını, özgün metne dönüşü, UI oluşturmayı ve otomasyon sınırlarını denetler. Bu kontroller gerçek oyun testinin yerine geçmez.

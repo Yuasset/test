@@ -134,6 +134,15 @@ for _, candidates in pairs(titles) do
         return a[1] < b[1]
     end)
 end
+local questNames = loadDatabase("tools/QuestNames.source.lua").WoWTRV_QuestNames
+for id, title in pairs(questNames) do
+    if questEnv.QTR_QuestData[tostring(id)] then
+        local candidates = titles[title] or {}
+        local present = false
+        for _, candidate in ipairs(candidates) do if candidate[1] == id then present = true end end
+        if not present then table.insert(candidates, {id, ""}); titles[title] = candidates end
+    end
+end
 outputTable("DataTitles.lua", "WoWTRV.Titles", titles)
 stats.titles = table.getn(keys(titles))
 outputTable("DataStats.lua", "WoWTRV.DataStats", stats)
