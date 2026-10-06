@@ -1,0 +1,45 @@
+## Interface: 50500, 50501, 50502, 50503, 50504
+## Title: |cFFFFFFFFWoWTR|r Türkçe Yama
+## Version: 26.1005
+## Notes: Görev, Diyalog, Sinematik ve Arayüz metinleri Türkçe olarak görüntülenir.
+## Notes_en: Translates the texts in the play into Turkish.
+## Author: Platine & Hakan YILMAZ
+## X-Website: https://www.curseforge.com/wow/addons/wowtr
+## E-mail: hknylmz@gmail.com
+## WWW: https://www.wowtr.com.tr
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## IconTexture: Interface\AddOns\WoWTR\Images\icon.png
+## SavedVariables: QTR_PS, QTR_SAVED, QTR_MISSING, QTR_GOSSIP, BB_PM, BB_PS, BB_TR, MF_PM, MF_PS, TT_PS, TT_TUTORIALS, BT_PM, BT_SAVED, ST_PM, ST_PS, ST_PH, WoWTR_minimapDB
+
+
+Libs\LibStub\LibStub.lua
+Libs\AceAddon-3.0\AceAddon-3.0.lua
+Libs\AceConsole-3.0\AceConsole-3.0.lua
+Libs\AceDB-3.0\AceDB-3.0.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Translations\QuestData_TR.lua
+Translations\Gossip_TR.lua
+Translations\Bubbles_TR.lua
+Translations\Subtitles_TR.lua
+Translations\TutorialsData7_TR.lua
+Translations\Books_TR.lua
+Translations\Tooltips_TR.lua
+
+Core\Localization.lua
+TranslationModules\Quests\Mists.lua
+TranslationModules\Bubbles\Bubbles.lua
+TranslationModules\MovieSubtitles\MovieSubtitles.lua
+TranslationModules\Tutorials\Tutorials_Mists.lua
+TranslationModules\Books\Books.lua
+Core\Core_Mists.lua
+Features\DebugTools.lua
+
+TranslationModules\Tooltips\Mists.lua
+
+Config\Widgets.lua
+Features\QoL.lua
+Config\Panel.lua
