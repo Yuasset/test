@@ -2,7 +2,7 @@
 
 `octowow` dalı, WoWTR 26.1005'in mevcut Türkçe çeviri verilerini Vanilla 1.12 API'si ve Lua 5.0 üzerinde kullanmak için hazırlanmıştır. Ana `main` dalındaki özgün paket korunur. ClassicAPI veya başka bir DLL bu uyarlamanın bağımlılığı değildir.
 
-Bu ilk sürüm otomatik Lua 5.0 kontrollerinden geçirilmiştir. OctoWoW 1.18.1 (7272) üzerinde gerçek karakterle oyun testi henüz yapılmamıştır.
+`26.1005-octo.1` sürümünün OctoWoW 1.18.1 (7272) içinde yüklenmesi kullanıcı tarafından doğrulandı; durum ekranında 0 hata görüldü. `26.1005-octo.2`, çantadaki eşyaların açıklamalarının Türkçe/İngilizce arasında gidip gelmesini gideren değişikliği içerir. Yenilenen açıklamalar artık 0,2 saniyelik zamanlayıcı beklemeden, oyunun mevcut tooltip işlemi tamamlandığında çevrilir. Bu değişiklik Lua 5.0 üzerinde her karede yenileme testinden geçti; yeni sürümün oyun içindeki görsel kontrolü bekleniyor.
 
 ## Kurulum ve güncelleme
 
@@ -10,10 +10,11 @@ Oyun ve launcher kapalıyken, mevcut temiz Git kurulumunda:
 
 ```powershell
 git -C 'C:\Games\WOW\Interface\Addons\WoWTR' fetch origin octowow
-git -C 'C:\Games\WOW\Interface\Addons\WoWTR' switch --track -c octowow origin/octowow
+git -C 'C:\Games\WOW\Interface\Addons\WoWTR' switch octowow
+git -C 'C:\Games\WOW\Interface\Addons\WoWTR' merge --ff-only origin/octowow
 ```
 
-`octowow` dalı zaten yerelde varsa ikinci komut yerine `git ... switch octowow` kullanın. Oyun klasörü farklıysa yolu ona göre değiştirin. Launcher klasörde `WoWTR.toc` dosyasını okur; güncelleme takibi için yerel dal `octowow` olarak kalmalıdır. Launcher'ın “Add custom git addon” alanı Git dalı seçmediği için yalnızca repo URL'sini eklemek yeniden `main` sürümünü kurar.
+İlk kurulumda yerel `octowow` dalı yoksa ikinci komut yerine `git -C 'C:\Games\WOW\Interface\Addons\WoWTR' switch --track -c octowow origin/octowow` kullanın. Hazırlanan `OctoWoW-kur.cmd` dosyası hem ilk kurulumda hem güncellemede aynı işlemi yapar. Oyun klasörü farklıysa yolu ona göre değiştirin. Launcher klasörde `WoWTR.toc` dosyasını okur; güncelleme takibi için yerel dal `octowow` olarak kalmalıdır. Launcher'ın “Add custom git addon” alanı Git dalı seçmediği için yalnızca repo URL'sini eklemek yeniden `main` sürümünü kurar.
 
 ZIP kurulumu: `WoWTR` klasörü doğrudan `Interface\AddOns` altında olmalı; `WoWTR\WoWTR.toc` bulunmalıdır. ZIP kurulumu Git güncelleme takibi içermez.
 
@@ -27,26 +28,27 @@ Karakter seçimindeki **AddOns** ekranında WoWTR'yi etkinleştirin. Başka bir 
 | Görev ID'si | İstemci sağlıyorsa doğrudan ID; aksi durumda İngilizce başlık ve hedef başlangıcıyla eşleştirme |
 | NPC diyalogları | Eşleşen metinler ve seçenekler WoWTR hash veritabanından çevrilir |
 | Kitap ve mektuplar | Başlık, sayfa ve metin hash'iyle WoWTR kitap kayıtları bulunur |
-| Tooltip | Eşya/büyü tooltip satırları; sayısal `$1` vb. yer tutucuları korunur |
+| Tooltip | Eşya/büyü tooltip satırları her oluşturma ve yenilemede hemen çevrilir; mevcut eklenti işlemleri ve API dönüş değerleri korunur |
 | NPC konuşmaları | Türkçe sohbet satırı; eşleşen erişilebilir konuşma balonu yazıları da değiştirilir |
 | Öğreticiler | İstemcinin sunduğu öğretici yazıları veritabanıyla eşleşirse çevrilir |
 | Altyazı | Yalnızca istemcinin Lua'ya sunduğu altyazı yazıları çevrilir; eski istemcide erişilemeyen video içi metinler desteklenmez |
-| Arayüz | Görev ekranındaki temel düğme ve bölüm başlıkları |
+| Arayüz | Görev düğme ve başlıkları, Sırt Çantası/Anahtarlık, karakter sekmeleri ve temel oyun menüsü düğmeleri |
 | Ayarlar | `/wowtr`, mini harita düğmesi, modül seçimleri ve yazı boyutu |
 | İsteğe bağlı otomasyon | Gri eşya satışı ve zindan savaş kaydı; başlangıçta kapalı |
 | Tanı | Hatalar ve bulunamayan metinler sınırlı sayıda kaydedilir |
 
 Görev çevirileri paketin `Source/Era/QuestData1_TR.lua` veritabanından gelir (4.288 kayıt). Retail'de değiştirilmiş görev metinlerini Vanilla görevlerine karıştırmamak için Retail görev dosyası yüklenmez. Diğer veriler mevcut WoWTR paketinden türetilir ve çeviri içerikleri korunur.
 
-OctoWoW'a özgü yeni görev ve metinler mevcut WoWTR veritabanında yoksa özgün dilinde kalır. Aynı adlı zincir görevlerinde yeterli ayırt edici bilgi yoksa yanlış çeviri seçilmez. `/wowtr durum` adayları gösterir; doğru kayıt biliniyorsa `/wowtr id 123` ile açık göreve bağlanabilir.
+OctoWoW'a özgü yeni görev ve metinler mevcut WoWTR veritabanında yoksa özgün dilinde kalır. Arayüz çevirisi yukarıdaki alanlarla sınırlıdır; bölge adları, diğer eklentilerin yazıları ve çevirisi bulunmayan eşya satırları İngilizce kalabilir. Sabit biçimde İngilizce kalan bir satır ile aynı satırın iki dil arasında gidip gelmesi farklı durumlardır. Aynı adlı zincir görevlerinde yeterli ayırt edici bilgi yoksa yanlış çeviri seçilmez. `/wowtr durum` adayları gösterir; doğru kayıt biliniyorsa `/wowtr id 123` ile açık göreve bağlanabilir.
 
 ## İlk oyun testi
 
-1. Girişten sonra `/wowtr durum`: sürüm `26.1005-octo.1`, hata sayısı 0 olmalı.
+1. Girişten sonra `/wowtr durum`: sürüm `26.1005-octo.2`, hata sayısı 0 olmalı.
 2. `/wowtr`: ayar penceresini açıp kapatın; mini harita düğmesini deneyin.
 3. Bir temel Vanilla görevinin kabul, günlük ve teslim metinlerini açın; EN/TR düğmesini deneyin.
-4. Bir NPC diyalogu, kitap ve eşya tooltip'i açın.
-5. Sorun varsa `/wowtr log` penceresinden metni kopyalayın. Oyundan normal çıkınca kayıt `WTF\Account\<hesap>\SavedVariables\WoWTR.lua` dosyasına da yazılır.
+4. Çantadaki bir eşyanın üzerinde fareyi 10 saniye tutun: çevrilen satırlar İngilizceye geri dönmemeli. Sonra başka eşyaya geçin; önceki eşyanın çevirisi yeni eşyanın üzerinde kalmamalı. Ekipman ve sohbetteki eşya bağlantılarını da deneyin.
+5. Sırt Çantası başlığı ve ESC menüsünü kontrol edin. `/wowtr` içinden açıklama/arayüz çevirisini kapatıp açın; özgün metin ve çeviri doğru biçimde geri gelmeli.
+6. Sorun varsa `/wowtr log` penceresinden metni kopyalayın. Oyundan normal çıkınca kayıt `WTF\Account\<hesap>\SavedVariables\WoWTR.lua` dosyasına da yazılır.
 
 ## Geri dönüş
 

@@ -48,9 +48,10 @@ end
 
 function W.OnEvent(eventName, value, speaker)
     if eventName == "ADDON_LOADED" and value == "WoWTR" then W.Initialize(); return end
-    if eventName == "PLAYER_LOGIN" then W.Initialize(); W.CheckCombatLog(); return end
+    if eventName == "PLAYER_LOGIN" then W.Initialize(); W.CheckCombatLog(); W.InterfaceText(); return end
     if not W.initialized then return end
-    if eventName == "QUEST_DETAIL" then W.QuestEvent("details")
+    if eventName == "ADDON_LOADED" then W.InterfaceText()
+    elseif eventName == "QUEST_DETAIL" then W.QuestEvent("details")
     elseif eventName == "QUEST_PROGRESS" then W.QuestEvent("progress")
     elseif eventName == "QUEST_COMPLETE" then W.QuestEvent("reward")
     elseif eventName == "QUEST_FINISHED" then
@@ -92,8 +93,6 @@ ticker:SetScript("OnUpdate", function()
     elapsed = elapsed + delta
     if elapsed < 0.2 then return end
     elapsed = 0
-    W.Protected("tooltip.game", W.Tooltip, GameTooltip); W.Protected("tooltip.item", W.Tooltip, ItemRefTooltip)
     W.Protected("bubbles", W.Bubbles); W.Protected("tutorial", W.Tutorials); W.Protected("subtitles", W.CheckSubtitleWidget)
-    W.Protected("interface", W.InterfaceText)
     if W.reader and W.reader:IsShown() and W.questContext and W.questContext.parent and not W.questContext.parent:IsShown() then W.reader:Hide() end
 end)

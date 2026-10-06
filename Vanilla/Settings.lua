@@ -4,17 +4,18 @@ local labels = {
     {"gossip", "NPC diyalogları ve seçenekleri"}, {"books", "Kitap ve mektuplar"},
     {"tooltips", "Eşya ve büyü açıklamaları"}, {"bubbles", "NPC konuşmaları ve konuşma balonları"},
     {"subtitles", "İstemcinin sağladığı sinematik altyazıları"}, {"tutorials", "Öğretici metinleri"},
-    {"questTitles", "Okuma panelinde Türkçe görev başlığı"}, {"ui", "Görev ekranı düğme ve başlıkları"}, {"saveMissing", "Bulunamayan metinleri kaydet"},
+    {"questTitles", "Okuma panelinde Türkçe görev başlığı"}, {"ui", "Görev, çanta ve temel menü yazıları"}, {"saveMissing", "Bulunamayan metinleri kaydet"},
     {"minimap", "Mini harita düğmesini göster"}, {"sellGrey", "Satıcıda gri eşyaları otomatik sat"},
     {"combatLog", "Zindan ve raidlerde savaş kaydı"},
 }
 
 function W.Changed(key)
-    if key == "enabled" then W.Restore()
+    if key == "enabled" then if not W.db.enabled then W.Restore() end
     elseif not W.db[key] then W.Restore(key) end
     if W.reader then W.RenderQuest(W.questContext) end
     if W.minimap then if W.db.minimap then W.minimap:Show() else W.minimap:Hide() end end
     if W.CheckCombatLog then W.CheckCombatLog() end
+    W.InterfaceText(); W.Tooltip(GameTooltip); W.Tooltip(ItemRefTooltip)
     W.Later(0.05, function() W.Gossip(); W.Book(); W.Tutorials() end, "settingsRefresh")
 end
 

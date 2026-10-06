@@ -20,7 +20,13 @@ function Frame:RegisterForDrag(...) self.drag = arg end
 function Frame:RegisterForClicks(...) self.clicks = arg end
 function Frame:StartMoving() end
 function Frame:StopMovingOrSizing() end
-function Frame:Show() self.shown = true end
+function Frame:Show()
+    local changed = not self.shown
+    self.shown = true
+    if changed and self.scripts.OnShow then
+        local savedThis = this; this = self; self.scripts.OnShow(); this = savedThis
+    end
+end
 function Frame:Hide() self.shown = false end
 function Frame:IsShown() return self.shown and (not self.parent or self.parent:IsShown()) end
 function Frame:SetFont(font, size, flags) self.font = font; self.fontSize = size; self.flags = flags; return true end
@@ -51,7 +57,20 @@ function Frame:SetAutoFocus(value) end
 function Frame:SetFocus() end
 function Frame:HighlightText() end
 function Frame:SetOwner(owner, anchor) self.owner = owner end
-function Frame:AddLine(text) table.insert(self.lines, text) end
+function Frame:AddLine(text)
+    table.insert(self.lines, text)
+    if self.kind == "GameTooltip" then
+        local name = self.name .. "TextLeft" .. table.getn(self.lines)
+        local region = _G[name] or self:CreateFontString(name)
+        region:SetText(text)
+    end
+end
+function Frame:AddDoubleLine(left, right)
+    self:AddLine(left)
+    local name = self.name .. "TextRight" .. table.getn(self.lines)
+    local region = _G[name] or self:CreateFontString(name)
+    region:SetText(right)
+end
 function Frame:NumLines() return table.getn(self.lines) end
 function Frame:GetCenter() return 0, 0 end
 function Frame:GetEffectiveScale() return 1 end
@@ -84,6 +103,55 @@ GameTooltip = CreateFrame("GameTooltip", "GameTooltip", UIParent)
 GameTooltipTextLeft1 = GameTooltip:CreateFontString("GameTooltipTextLeft1")
 GameTooltipTextRight1 = GameTooltip:CreateFontString("GameTooltipTextRight1")
 ItemRefTooltip = CreateFrame("GameTooltip", "ItemRefTooltip", UIParent)
+local tooltipSource = "Warrior gains 1,234 power."
+local function nativeTooltipText(tooltip, text)
+    tooltip.lines = {text}
+    local name = tooltip:GetName() .. "TextLeft1"
+    local region = _G[name] or tooltip:CreateFontString(name)
+    region:SetText(text)
+    local right = _G[tooltip:GetName() .. "TextRight1"]
+    if right then right:SetText("") end
+end
+function GameTooltip:SetText(text) nativeTooltipText(self, text); return nil, "text", nil end
+ItemRefTooltip.SetText = GameTooltip.SetText
+function GameTooltip:SetBagItem(bag, slot)
+    self.lastBag = bag; self.lastSlot = slot
+    nativeTooltipText(self, tooltipSource)
+    self:Show()
+    return nil, 37, nil
+end
+function GameTooltip:SetInventoryItem(unit, slot)
+    self.lastUnit = unit; self.lastSlot = slot
+    nativeTooltipText(self, tooltipSource)
+    return true, nil, 41
+end
+function ItemRefTooltip:SetHyperlink(link)
+    self.lastLink = link
+    nativeTooltipText(self, tooltipSource)
+    return nil, "hyperlink", nil
+end
+-- An existing addon extends the tooltip before WoWTR installs its hooks.
+local addonCalls = 0
+local nativeBag = GameTooltip.SetBagItem
+GameTooltip.SetBagItem = function(...)
+    addonCalls = addonCalls + 1
+    local result = {nativeBag(unpack(arg))}; result.n = 3
+    arg[1]:AddLine("Existing addon line")
+    return unpack(result)
+end
+local oldUpdateCalls = 0
+GameTooltip:SetScript("OnUpdate", function()
+    oldUpdateCalls = oldUpdateCalls + 1
+    nativeTooltipText(this, tooltipSource)
+    return nil, "old update", 9
+end)
+local oldShowCalls = 0
+GameTooltip:SetScript("OnShow", function() oldShowCalls = oldShowCalls + 1 end)
+ContainerFrame1 = CreateFrame("Frame", "ContainerFrame1", UIParent)
+ContainerFrame1Name = ContainerFrame1:CreateFontString("ContainerFrame1Name")
+ContainerFrame1Name:SetText("Backpack")
+GameMenuButtonContinue = CreateFrame("Button", "GameMenuButtonContinue", UIParent)
+GameMenuButtonContinue:SetText("Return to Game")
 Minimap = CreateFrame("Frame", "Minimap", UIParent)
 WorldFrame = CreateFrame("Frame", "WorldFrame", UIParent)
 MerchantFrame = CreateFrame("Frame", "MerchantFrame", UIParent)
@@ -203,12 +271,92 @@ check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Too
 W.db.tooltips = false; W.Changed("tooltips")
 check(GameTooltipTextLeft1:GetText() == tooltipEnglish, "Tooltip disable did not restore English")
 W.db.tooltips = true
+-- Every native bag refresh must already be Turkish when it returns, without a timer.
+GameTooltip:Hide()
+local bagResult = W.Capture(GameTooltip:SetBagItem(0, 2))
+check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "First bag hover waited for a timer")
+check(bagResult.n == 3 and bagResult[1] == nil and bagResult[2] == 37 and bagResult[3] == nil, "Bag hook lost nil return values")
+check(addonCalls == 1 and GameTooltipTextLeft2:GetText() == "Existing addon line", "Existing tooltip addon was overwritten")
+check(oldShowCalls == 1 and GameTooltip.lastBag == 0 and GameTooltip.lastSlot == 2, "OnShow or bag arguments lost")
+for refresh = 1, 60 do
+    GameTooltip:SetBagItem(0, 2)
+    check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "English frame after repeated bag refresh")
+    tick(1 / 60)
+    check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Timer changed stable tooltip")
+end
+check(addonCalls == 61, "Hook chain did not execute for each refresh")
+this = GameTooltip; arg1 = 1 / 60
+local u, v, z = GameTooltip:GetScript("OnUpdate")()
+check(oldUpdateCalls == 1 and u == nil and v == "old update" and z == 9, "Original tooltip update lost")
+check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Native script refresh remained English")
+local inventoryResult = W.Capture(GameTooltip:SetInventoryItem("player", 16))
+check(inventoryResult.n == 3 and inventoryResult[1] and inventoryResult[2] == nil and inventoryResult[3] == 41, "Inventory return values changed")
+check(GameTooltip.lastUnit == "player" and GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Equipment tooltip remained English")
+ItemRefTooltip:Hide()
+local hyperlinkResult = W.Capture(ItemRefTooltip:SetHyperlink("item:123:0"))
+check(hyperlinkResult.n == 3 and hyperlinkResult[2] == "hyperlink" and ItemRefTooltip.lastLink == "item:123:0", "Hyperlink hook changed native result")
+check(ItemRefTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Hidden hyperlink tooltip was not translated before Show")
+GameTooltip:AddDoubleLine(tooltipEnglish, tooltipEnglish)
+check(GameTooltipTextLeft2:GetText() == "Savaşçı 1,234 güç kazanır." and GameTooltipTextRight2:GetText() == "Savaşçı 1,234 güç kazanır.", "New left/right lines remained English")
+-- Skipping unchanged lines avoids repeating hash work in every tooltip OnUpdate.
+local oldFind, lookupCalls = W.FindTranslation, 0
+W.FindTranslation = function(...)
+    lookupCalls = lookupCalls + 1
+    return oldFind(unpack(arg))
+end
+W.Tooltip(GameTooltip); W.Tooltip(GameTooltip)
+check(lookupCalls == 0, "Unchanged tooltip lines were needlessly rehashed")
+W.FindTranslation = oldFind
+tooltipSource = "Unknown custom server item"
+GameTooltip:SetBagItem(0, 3)
+check(GameTooltipTextLeft1:GetText() == tooltipSource, "Reused tooltip retained previous translation")
+check(GameTooltipTextLeft1:GetFont() == "Fonts\\FRIZQT__.ttf", "Untranslated reused line retained addon font")
+tooltipSource = tooltipEnglish
+GameTooltip:SetBagItem(0, 2); GameTooltip:SetBagItem(0, 2)
+W.db.tooltips = false; W.Changed("tooltips")
+check(GameTooltipTextLeft1:GetText() == tooltipEnglish and GameTooltipTextLeft1:GetFont() == "Fonts\\FRIZQT__.ttf", "Repeated refresh lost original text/font for disable")
+GameTooltip:SetBagItem(0, 2)
+check(GameTooltipTextLeft1:GetText() == tooltipEnglish, "Disabled tooltip hook translated text")
+W.db.tooltips = true; W.Changed("tooltips")
+check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Tooltip setting did not refresh immediately")
+local failingTooltip = CreateFrame("GameTooltip", "FailingTooltip", UIParent)
+local failNext = true
+function failingTooltip:SetBagItem()
+    if failNext then failNext = false; error("native hook failure") end
+    nativeTooltipText(self, tooltipEnglish)
+end
+W.HookTooltip(failingTooltip)
+local succeeded = pcall(function() failingTooltip:SetBagItem() end)
+check(not succeeded, "Original method error was swallowed")
+failingTooltip:SetBagItem()
+check(FailingTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Native method failure left hook depth stuck")
+check(ContainerFrame1Name:GetText() == "Sırt Çantası", "Backpack label missing")
+check(GameMenuButtonContinue:GetFontString():GetText() == "Oyuna Dön", "Basic menu label missing")
+ContainerFrame1Name:SetText("Backpack")
+check(ContainerFrame1Name:GetText() == "Sırt Çantası", "Bag label refresh waited for a timer")
 QuestFrameAcceptButton = CreateFrame("Button", "QuestFrameAcceptButton", QuestFrame, "UIPanelButtonTemplate")
 QuestFrameAcceptButton:SetText("Accept"); W.InterfaceText()
 check(QuestFrameAcceptButton:GetFontString():GetText() == "Kabul Et", "Vanilla quest button translation failed")
+QuestFrameAcceptButton:SetText("Decline")
+check(QuestFrameAcceptButton:GetFontString():GetText() == "Reddet", "Button update remained English")
+QuestFrameAcceptButton:SetText("Accept")
 W.db.ui = false; W.Changed("ui")
 check(QuestFrameAcceptButton:GetFontString():GetText() == "Accept", "UI disable did not restore English")
+check(ContainerFrame1Name:GetText() == "Backpack" and ContainerFrame1Name:GetFont() == "Fonts\\FRIZQT__.ttf", "UI disable lost original bag label/font")
 W.db.ui = true
+W.Changed("ui")
+check(ContainerFrame1Name:GetText() == "Sırt Çantası", "UI setting did not refresh immediately")
+ContainerFrame1Name:SetText("Unknown custom bag")
+check(ContainerFrame1Name:GetText() == "Unknown custom bag", "Unknown custom bag was overwritten")
+check(ContainerFrame1Name:GetFont() == "Fonts\\FRIZQT__.ttf", "Unknown custom bag retained translation font")
+ContainerFrame1Name:SetText("Backpack")
+W.db.enabled = false; W.Changed("enabled")
+check(ContainerFrame1Name:GetText() == "Backpack" and GameTooltipTextLeft1:GetText() == tooltipEnglish, "Disabling addon did not restore native texts")
+W.db.enabled = true; W.Changed("enabled")
+check(ContainerFrame1Name:GetText() == "Sırt Çantası" and GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Enabling addon did not restore translation")
+W.db.enabled = false; W.Changed("enabled")
+check(ContainerFrame1Name:GetFont() == "Fonts\\FRIZQT__.ttf", "Toggle cycle lost original UI font")
+W.db.enabled = true; W.Changed("enabled")
 local widget = UIParent:CreateFontString(nil)
 widget:SetText("A"); widget:SetFont("OriginalFont", 13, "OUTLINE")
 W.Replace(widget, "TR A", "tooltips"); widget:SetText("New unrelated text"); W.Restore("tooltips")

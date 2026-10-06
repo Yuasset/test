@@ -1,6 +1,6 @@
 -- WoWTR OctoWoW adapter. Native Vanilla / Lua 5.0; no injected DLL required.
 WoWTRV = {
-    version = "26.1005-octo.1", PackedDB = {}, DataStats = {},
+    version = "26.1005-octo.2", PackedDB = {}, DataStats = {},
     modules = {}, timers = {}, originals = setmetatable({}, {__mode = "k"}),
     cache = {}, cacheSize = {}, pending = {}, session = {},
     defaults = {enabled = true, quests = true, gossip = true, books = true, ui = true,
@@ -187,6 +187,7 @@ function W.Replace(widget, translation, module)
     if previous and current == previous.translated then return true end
     local font, size, flags
     if widget.GetFont then font, size, flags = widget:GetFont() end
+    if previous and font == W.font then font, size, flags = previous.font, previous.size, previous.flags end
     W.originals[widget] = {text = current, translated = translation, font = font, size = size, flags = flags, module = module}
     if widget.SetFont then widget:SetFont(W.font, size or W.db.fontSize, flags) end
     widget:SetText(translation)
@@ -207,6 +208,11 @@ function W.TranslateWidget(widget, database, numbers, module)
     if not widget or not widget.GetText then return end
     local previous = W.originals[widget]
     if previous and widget:GetText() == previous.translated then return end
+    if previous then
+        local font = widget.GetFont and widget:GetFont()
+        if font == W.font and previous.font then widget:SetFont(previous.font, previous.size, previous.flags) end
+        W.originals[widget] = nil
+    end
     W.Replace(widget, W.FindTranslation(database, widget:GetText(), numbers), module or database)
 end
 function W.NewFrame(kind, name, parent, template)
