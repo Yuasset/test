@@ -185,6 +185,23 @@ check(GossipGreetingText:GetText() == "Türkçe\nSatır\tSekme\\n", "Packed deco
 W.db.gossip = false; W.Changed("gossip")
 check(GossipGreetingText:GetText() == "English gossip", "Original text not restored on disable")
 W.db.gossip = true
+-- Tooltip numbers and class words follow the original WoWTR hash contract.
+local tooltipEnglish = "Warrior gains 1,234 power."
+local tooltipHash = W.Hash("Warrior gains  power.")
+W.PackedDB.tooltips[math.mod(tooltipHash,512)+1] = "\n" .. string.format("%.0f",tooltipHash) .. "\tSavaşçı $1 güç kazanır.\n"
+W.cache.tooltips = {}; W.cacheSize.tooltips = 0
+GameTooltipTextLeft1:SetText(tooltipEnglish); GameTooltip.lines = {tooltipEnglish}
+W.Tooltip(GameTooltip)
+check(GameTooltipTextLeft1:GetText() == "Savaşçı 1,234 güç kazanır.", "Tooltip hash/numeric translation failed")
+W.db.tooltips = false; W.Changed("tooltips")
+check(GameTooltipTextLeft1:GetText() == tooltipEnglish, "Tooltip disable did not restore English")
+W.db.tooltips = true
+QuestFrameAcceptButton = CreateFrame("Button", "QuestFrameAcceptButton", QuestFrame, "UIPanelButtonTemplate")
+QuestFrameAcceptButton:SetText("Accept"); W.InterfaceText()
+check(QuestFrameAcceptButton:GetFontString():GetText() == "Kabul Et", "Vanilla quest button translation failed")
+W.db.ui = false; W.Changed("ui")
+check(QuestFrameAcceptButton:GetFontString():GetText() == "Accept", "UI disable did not restore English")
+W.db.ui = true
 local widget = UIParent:CreateFontString(nil)
 widget:SetText("A"); widget:SetFont("OriginalFont", 13, "OUTLINE")
 W.Replace(widget, "TR A", "tooltips"); widget:SetText("New unrelated text"); W.Restore("tooltips")
@@ -212,5 +229,6 @@ check(table.getn(WoWTRVanillaLog.errors) == errorCount, "Duplicate errors spamme
 check(errorCount == 1, "Unexpected integration errors: " .. W.LogText())
 print("PASS: " .. assertions .. " Lua 5.0 integration assertions")
 local report = assert(io.open("tests/result.txt", "w"))
-report:write("PASS: ", assertions, " integration assertions on ", _VERSION, "\n")
+collectgarbage()
+report:write("PASS: ", assertions, " integration assertions on ", _VERSION, "\n", "Lua heap KB after collection: ", gcinfo(), "\n")
 report:close()

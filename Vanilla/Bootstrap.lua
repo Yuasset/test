@@ -138,7 +138,7 @@ function W.Format(text, original)
     text = string.gsub(text, "UE_COLOR:", "")
     if original then
         local numbers = {}
-        for value in string.gfind(original, "%d[%d,.]*") do table.insert(numbers, value) end
+        for value in string.gfind(original, "%d[%d,.]*") do table.insert(numbers, (string.gsub(value, "[,.]+$", ""))) end
         text = string.gsub(text, "%$(%d+)", function(index) return numbers[tonumber(index)] or ("$" .. index) end)
     end
     return text
@@ -152,6 +152,17 @@ function W.FindTranslation(database, text, numbers)
     table.insert(candidates, stripped)
     table.insert(candidates, (string.gsub(stripped, "%s+", " ")))
     if numbers then table.insert(candidates, W.Normalize(text, true)) end
+    if numbers then
+        -- The original tooltip hash removes only the player's name, not class/race words.
+        local tooltipText = string.gsub(text, "|c%x%x%x%x%x%x%x%x", "")
+        tooltipText = string.gsub(tooltipText, "|r", "")
+        tooltipText = string.gsub(tooltipText, "[\r\n]", "")
+        local player = UnitName("player")
+        if player and player ~= "" then tooltipText = string.gsub(tooltipText, W.Escape(player), "$N") end
+        tooltipText = string.gsub(tooltipText, "(%d),(%d)", "%1%2")
+        tooltipText = string.gsub(tooltipText, "%d", "")
+        table.insert(candidates, tooltipText)
+    end
     for _, candidate in ipairs(candidates) do
         local translation = W.Lookup(database, W.Hash(candidate))
         if translation then return W.Format(translation, text) end
