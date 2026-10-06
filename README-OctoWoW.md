@@ -50,7 +50,7 @@ OctoWoW'a özgü yeni görev ve metinler mevcut WoWTR veritabanında yoksa özg�
 
 ## Geri dönüş
 
-Oyun ve launcher kapalıyken `git -C 'C:\Games\WOW\Interface\Addons\WoWTR' switch main` özgün sürüme döndürür. Uyarlamanın ayarları `WoWTRVanillaDB` adlı ayrı SavedVariables tablosundadır.
+Oyun ve launcher kapalıyken `git -C 'C:\Games\WOW\Interface\Addons\WoWTR' switch main` özgün sürüme döndürür. Uyarlamanın ayarları `WoWTRVanillaDB` adlı ayrı SavedVariables tablosundadır. Özgün WoWTR'nin SavedVariables isimleri de `.toc` içinde tutulur; varsa eski ayarlar oyun çıkışında silinmez.
 
 ## Veri ve kaynaklar
 

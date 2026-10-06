@@ -6,7 +6,8 @@
 ## X-Website: https://www.wowtr.com.tr
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
-## SavedVariables: WoWTRVanillaDB, WoWTRVanillaLog
+## SavedVariables: WoWTRVanillaDB, WoWTRVanillaLog, QTR_PS, QTR_SAVED, QTR_MISSING, QTR_GOSSIP, BB_PM, BB_PS, BB_TR, MF_PM, MF_PS, TT_PS, TT_TUTORIALS, BT_PM, BT_SAVED, ST_PM, ST_PS, ST_PH, WoWTR_minimapDB
+## SavedVariablesPerCharacter: QTR_PC
 ## OptionalDeps: pfQuest
 
 Vanilla\Bootstrap.lua
