@@ -1,6 +1,6 @@
 ## Interface: 11200
 ## Title: WoWTR Türkçe Yama |cff80c0ffOctoWoW|r
-## Version: 26.1005-octo.2
+## Version: 26.1005-octo.3
 ## Notes: WoWTR çeviri verileriyle Vanilla görev, diyalog, kitap, tooltip ve NPC konuşma çevirileri. /wowtr
 ## Author: Platine & Hakan YILMAZ; OctoWoW uyarlaması: Yuasset
 ## X-Website: https://www.wowtr.com.tr
@@ -21,8 +21,11 @@ Vanilla\DataBubbles.lua
 Vanilla\DataTutorials.lua
 Vanilla\DataSubtitles.lua
 Vanilla\DataStats.lua
+Vanilla\Localization.lua
+Vanilla\UITranslations.lua
 Vanilla\Quests.lua
 Vanilla\GossipBooks.lua
+Vanilla\Interface.lua
 Vanilla\TextModules.lua
 Vanilla\Settings.lua
 Vanilla\Runtime.lua

@@ -4,13 +4,15 @@ local labels = {
     {"gossip", "NPC diyalogları ve seçenekleri"}, {"books", "Kitap ve mektuplar"},
     {"tooltips", "Eşya ve büyü açıklamaları"}, {"bubbles", "NPC konuşmaları ve konuşma balonları"},
     {"subtitles", "İstemcinin sağladığı sinematik altyazıları"}, {"tutorials", "Öğretici metinleri"},
-    {"questTitles", "Okuma panelinde Türkçe görev başlığı"}, {"ui", "Görev, çanta ve temel menü yazıları"}, {"saveMissing", "Bulunamayan metinleri kaydet"},
+    {"questTitles", "Türkçe görev başlıkları"}, {"ui", "Oyun arayüzü, büyüler ve bölge adları"}, {"saveMissing", "Bulunamayan metinleri kaydet"},
+    {"reader", "Ayrı çeviri panelini göster"},
     {"minimap", "Mini harita düğmesini göster"}, {"sellGrey", "Satıcıda gri eşyaları otomatik sat"},
     {"combatLog", "Zindan ve raidlerde savaş kaydı"},
 }
 
 function W.Changed(key)
     if key == "enabled" then if not W.db.enabled then W.Restore() end
+    elseif key == "questTitles" then W.Restore("quests")
     elseif not W.db[key] then W.Restore(key) end
     if W.reader then W.RenderQuest(W.questContext) end
     if W.minimap then if W.db.minimap then W.minimap:Show() else W.minimap:Hide() end end
@@ -22,7 +24,7 @@ end
 function W.ShowOptions()
     if not W.options then
         local frame = W.NewFrame("Frame", "WoWTRVanillaOptions", UIParent)
-        frame:SetWidth(455); frame:SetHeight(555); frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        frame:SetWidth(455); frame:SetHeight(582); frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
         frame:SetFrameStrata("DIALOG"); W.Backdrop(frame)
         frame:SetMovable(true); frame:EnableMouse(true); frame:RegisterForDrag("LeftButton")
         frame:SetScript("OnDragStart", function() this:StartMoving() end)
@@ -84,7 +86,8 @@ function W.Status()
     local errors = table.getn(WoWTRVanillaLog.errors)
     local missing = 0
     for _ in pairs(WoWTRVanillaLog.missing) do missing = missing + 1 end
-    W.Message(W.version .. " · " .. tostring(W.DataStats.quests or 0) .. " görev · " .. errors .. " hata · " .. missing .. " eksik metin")
+    W.Message(W.version .. " · " .. tostring(W.DataStats.quests or 0) .. " görev · " .. errors .. " hata · " .. missing .. " yakalanan eksik metin")
+    W.Message("Eksik metin kaydı en fazla 1000 örnek tutar; tüm oyunun çeviri yüzdesi değildir.")
     if W.questContext then
         local context = W.questContext
         W.Message("Görev: " .. context.title .. " · ID: " .. tostring(context.resolvedID or "belirsiz") .. " · " .. tostring(context.resolution))

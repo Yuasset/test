@@ -2,7 +2,9 @@
 
 `octowow` dalı, WoWTR 26.1005'in mevcut Türkçe çeviri verilerini Vanilla 1.12 API'si ve Lua 5.0 üzerinde kullanmak için hazırlanmıştır. Ana `main` dalındaki özgün paket korunur. ClassicAPI veya başka bir DLL bu uyarlamanın bağımlılığı değildir.
 
-`26.1005-octo.1` sürümünün OctoWoW 1.18.1 (7272) içinde yüklenmesi kullanıcı tarafından doğrulandı; durum ekranında 0 hata görüldü. `26.1005-octo.2`, çantadaki eşyaların açıklamalarının Türkçe/İngilizce arasında gidip gelmesini gideren değişikliği içerir. Yenilenen açıklamalar artık 0,2 saniyelik zamanlayıcı beklemeden, oyunun mevcut tooltip işlemi tamamlandığında çevrilir. Bu değişiklik Lua 5.0 üzerinde her karede yenileme testinden geçti; yeni sürümün oyun içindeki görsel kontrolü bekleniyor.
+`26.1005-octo.2` sürümü OctoWoW 1.18.1 (7272) içinde kullanıcı tarafından çalıştırıldı. `26.1005-octo.3`, görev çevirisini ana oyun penceresine taşır; büyü kitabı, beceriler, karakter, harita, çanta, satıcı, banka, posta ve menü metinlerini ekran oluşturulurken ve yenilenirken çevirir. Yerel OctoWoW arşivlerindeki gerçek FrameXML dosyaları incelenerek hazırlanmıştır. Bu sürümün oyun içindeki görsel kontrolü bekleniyor.
+
+Bu paket henüz oyunun tamamını %100 Türkçeleştirmez. Mevcut verilerde bulunmayan özel sunucu metinleri ve kalan arayüz kayıtları için yeni çeviri gerekir. Otomatik kod kontrollerinin geçmesi, tüm içeriğin çevrildiğini veya gerçek oyunda hata olmayacağını garanti etmez. Oyuncu sohbetleri ve oyuncu/karakter özel adları kullanıcının seçimiyle özgün kalır.
 
 ## Kurulum ve güncelleme
 
@@ -24,7 +26,7 @@ Karakter seçimindeki **AddOns** ekranında WoWTR'yi etkinleştirin. Başka bir 
 
 | Alan | Davranış |
 |---|---|
-| Görev kabulü, günlük ve teslim | Özgün oyun penceresinin yanında Türkçe okuma paneli; EN/TR geçişi |
+| Görev kabulü, günlük ve teslim | Ana görev penceresindeki başlık, açıklama ve hedefler çevrilir; ayrı okuma paneli ayarlardan açılabilir |
 | Görev ID'si | İstemci sağlıyorsa doğrudan ID; aksi durumda İngilizce başlık ve hedef başlangıcıyla eşleştirme |
 | NPC diyalogları | Eşleşen metinler ve seçenekler WoWTR hash veritabanından çevrilir |
 | Kitap ve mektuplar | Başlık, sayfa ve metin hash'iyle WoWTR kitap kayıtları bulunur |
@@ -32,22 +34,25 @@ Karakter seçimindeki **AddOns** ekranında WoWTR'yi etkinleştirin. Başka bir 
 | NPC konuşmaları | Türkçe sohbet satırı; eşleşen erişilebilir konuşma balonu yazıları da değiştirilir |
 | Öğreticiler | İstemcinin sunduğu öğretici yazıları veritabanıyla eşleşirse çevrilir |
 | Altyazı | Yalnızca istemcinin Lua'ya sunduğu altyazı yazıları çevrilir; eski istemcide erişilemeyen video içi metinler desteklenmez |
-| Arayüz | Görev düğme ve başlıkları, Sırt Çantası/Anahtarlık, karakter sekmeleri ve temel oyun menüsü düğmeleri |
+| Arayüz | Oyun pencerelerinin metinleri mevcut veritabanı ve ek sözlükle eşleştirilir; büyü/beceri adları, bölge adları ve desteklenen sayısal şablonlar dahil |
+| Özel örnekler | Dönüş Taşı konumu ve Kan Hiddeti açıklamasındaki OctoWoW değerleri korunarak çevrilir |
 | Ayarlar | `/wowtr`, mini harita düğmesi, modül seçimleri ve yazı boyutu |
 | İsteğe bağlı otomasyon | Gri eşya satışı ve zindan savaş kaydı; başlangıçta kapalı |
 | Tanı | Hatalar ve bulunamayan metinler sınırlı sayıda kaydedilir |
 
 Görev çevirileri paketin `Source/Era/QuestData1_TR.lua` veritabanından gelir (4.288 kayıt). Retail'de değiştirilmiş görev metinlerini Vanilla görevlerine karıştırmamak için Retail görev dosyası yüklenmez. Diğer veriler mevcut WoWTR paketinden türetilir ve çeviri içerikleri korunur.
 
-OctoWoW'a özgü yeni görev ve metinler mevcut WoWTR veritabanında yoksa özgün dilinde kalır. Arayüz çevirisi yukarıdaki alanlarla sınırlıdır; bölge adları, diğer eklentilerin yazıları ve çevirisi bulunmayan eşya satırları İngilizce kalabilir. Sabit biçimde İngilizce kalan bir satır ile aynı satırın iki dil arasında gidip gelmesi farklı durumlardır. Aynı adlı zincir görevlerinde yeterli ayırt edici bilgi yoksa yanlış çeviri seçilmez. `/wowtr durum` adayları gösterir; doğru kayıt biliniyorsa `/wowtr id 123` ile açık göreve bağlanabilir.
+OctoWoW'a özgü yeni görev ve metinler mevcut WoWTR veritabanında yoksa özgün dilinde kalır. Ek sözlükte 889 doğrudan eşleştirme ve ayrıca değişken değerleri koruyan şablonlar bulunur. İstemcinin GlobalStrings kayıtları üzerindeki filtrelenmiş taramada 3.085 sabit adaydan 1.187'sine farklı bir karşılık bulunmuştur; 1.893 sabit adayın karşılığı bulunamamıştır, 5 ad bilinçli olarak özgün kalır. 846 biçim şablonu çalışma anında doğrulama gerektirir. Bu sayılar oyunun tamamının yüzdesi değildir ve bulunan karşılıkların dil/bağlam kalitesini tek başına doğrulamaz. Sunucunun görev/eşya/diyalog veritabanının tamamı bu taramaya dahil değildir.
+
+Aynı adlı zincir görevlerinde yeterli ayırt edici bilgi yoksa yanlış çeviri seçilmez. `/wowtr durum` adayları gösterir; doğru kayıt biliniyorsa `/wowtr id 123` ile açık göreve bağlanabilir. `/wowtr log` çevrilemeyen arayüz ve açıklama metinlerini en fazla 1000 örnek olarak kaydeder. Eksik sayısı yalnızca yakalanan örnekleri belirtir; `0` yazması tüm oyunun tamamlandığı anlamına gelmez.
 
 ## İlk oyun testi
 
-1. Girişten sonra `/wowtr durum`: sürüm `26.1005-octo.2`, hata sayısı 0 olmalı.
+1. Girişten sonra `/wowtr durum`: sürüm `26.1005-octo.3`, hata sayısı 0 olmalı.
 2. `/wowtr`: ayar penceresini açıp kapatın; mini harita düğmesini deneyin.
-3. Bir temel Vanilla görevinin kabul, günlük ve teslim metinlerini açın; EN/TR düğmesini deneyin.
+3. Bir temel Vanilla görevinin kabul, günlük ve teslim metinlerinin ana oyun penceresinde Türkçe olduğunu kontrol edin. Ayrı paneli denemek isterseniz `/wowtr` ayarlarından açın.
 4. Çantadaki bir eşyanın üzerinde fareyi 10 saniye tutun: çevrilen satırlar İngilizceye geri dönmemeli. Sonra başka eşyaya geçin; önceki eşyanın çevirisi yeni eşyanın üzerinde kalmamalı. Ekipman ve sohbetteki eşya bağlantılarını da deneyin.
-5. Sırt Çantası başlığı ve ESC menüsünü kontrol edin. `/wowtr` içinden açıklama/arayüz çevirisini kapatıp açın; özgün metin ve çeviri doğru biçimde geri gelmeli.
+5. Büyü kitabını, becerileri, sağlık yazısını, mini harita başlığını ve ESC menüsünü kontrol edin. Dönüş Taşı ile Kan Hiddeti açıklamalarında sayılar doğru kalmalı. `/wowtr` içinden açıklama/arayüz çevirisini kapatıp açın; özgün metin ve çeviri doğru biçimde geri gelmeli.
 6. Sorun varsa `/wowtr log` penceresinden metni kopyalayın. Oyundan normal çıkınca kayıt `WTF\Account\<hesap>\SavedVariables\WoWTR.lua` dosyasına da yazılır.
 
 ## Geri dönüş

@@ -87,15 +87,49 @@ local function block(label, text)
     return "|cffffd100" .. label .. "|r\n" .. W.Format(text) .. "\n\n"
 end
 
+local function nativeText(widget, source, translated)
+    if not widget or not widget.SetText then return end
+    if translated and translated ~= "" then W.Replace(widget, W.Format(translated), "quests", source); return end
+    local previous = W.originals[widget]
+    local restoring = W.restoring; W.restoring = true
+    if previous and previous.font and widget.SetFont then widget:SetFont(previous.font, previous.size, previous.flags) end
+    widget:SetText(source or "")
+    W.originals[widget] = nil; W.restoring = restoring
+end
+
+function W.NativeQuest(context, translation)
+    if not context then return end
+    if not W.Active("quests") or W.readerEnglish then W.Restore("quests"); return end
+    local title, description, objectives, scroll
+    if context.stage == "log" then
+        title, description, objectives, scroll = QuestLogQuestTitle, QuestLogQuestDescription, QuestLogObjectivesText, QuestLogDetailScrollFrame
+    elseif context.stage == "progress" then
+        title, description, scroll = QuestProgressTitleText, QuestProgressText, QuestProgressScrollFrame
+    elseif context.stage == "reward" then
+        title, description, scroll = QuestRewardTitleText, QuestRewardText, QuestRewardScrollFrame
+    else title, description, objectives, scroll = QuestTitleText, QuestDescription, QuestObjectiveText, QuestDetailScrollFrame end
+    translation = translation or {}
+    nativeText(title, context.title, W.db.questTitles and translation.Title)
+    local body
+    if context.stage == "progress" then body = translation.Progress
+    elseif context.stage == "reward" then body = translation.Completion
+    else body = translation.Description end
+    nativeText(description, context.description, body)
+    nativeText(objectives, context.objectives, translation.Objectives)
+    if scroll and scroll.UpdateScrollChildRect then scroll:UpdateScrollChildRect() end
+end
+
 function W.RenderQuest(context)
     if not W.Active("quests") or not context or context.title == "" then
         if W.reader then W.reader:Hide() end
+        if not W.Active("quests") then W.Restore("quests") end
         return
     end
     W.CreateReader()
     local id, resolution = W.ResolveQuest(context.title, context.objectives, context.id)
     context.resolvedID = id; context.resolution = resolution
     local translation = id and W.Quests[tostring(id)]
+    W.NativeQuest(context, translation)
     local body = ""
     if translation and not W.readerEnglish then
         W.reader.title:SetText(W.db.questTitles and W.Format(translation.Title or context.title) or context.title)
@@ -124,7 +158,7 @@ function W.RenderQuest(context)
         W.reader:SetPoint("TOPLEFT", context.parent or UIParent, "TOPRIGHT", -10, -18)
         W.readerAnchor = context.parent
     end
-    if not W.readerDismissed then W.reader:Show() end
+    if W.db.reader and not W.readerDismissed then W.reader:Show() else W.reader:Hide() end
 end
 
 function W.QuestEvent(stage)
@@ -166,8 +200,14 @@ function W.QuestLog()
 end
 
 function W.InitQuests()
-    local function refresh() W.Later(0.08, W.QuestLog, "questLog") end
+    local function refresh() W.QuestLog(); if W.InterfaceText then W.InterfaceText() end end
     for _, name in ipairs({"QuestLog_Update", "QuestLog_UpdateQuestDetails", "QuestLogTitleButton_OnClick", "QuestLog_SetSelection"}) do W.Hook(name, refresh) end
+    local function stageHook(stage)
+        return function() W.QuestEvent(stage); W.RenderQuest(W.questContext) end
+    end
+    W.Hook("QuestFrameDetailPanel_OnShow", stageHook("details"))
+    W.Hook("QuestFrameProgressPanel_OnShow", stageHook("progress"))
+    W.Hook("QuestFrameRewardPanel_OnShow", stageHook("reward"))
     for _, frame in ipairs({QuestFrame or false, QuestLogFrame or false}) do
         if frame and frame.GetScript then
             local old = frame:GetScript("OnHide")

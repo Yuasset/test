@@ -1,11 +1,11 @@
 -- WoWTR OctoWoW adapter. Native Vanilla / Lua 5.0; no injected DLL required.
 WoWTRV = {
-    version = "26.1005-octo.2", PackedDB = {}, DataStats = {},
+    version = "26.1005-octo.3", PackedDB = {}, DataStats = {},
     modules = {}, timers = {}, originals = setmetatable({}, {__mode = "k"}),
     cache = {}, cacheSize = {}, pending = {}, session = {},
     defaults = {enabled = true, quests = true, gossip = true, books = true, ui = true,
         tooltips = true, bubbles = true, subtitles = true, tutorials = true,
-        questTitles = true, fontSize = 14, saveMissing = true,
+        questTitles = true, reader = false, fontSize = 14, saveMissing = true,
         minimap = true, minimapAngle = 225, sellGrey = false, combatLog = false},
 }
 local W = WoWTRV
@@ -71,7 +71,7 @@ function W.Hook(name, after)
     return true
 end
 function W.Active(module)
-    return W.db and W.db.enabled and W.db[module]
+    return not W.restoring and W.db and W.db.enabled and W.db[module]
 end
 function W.Lookup(name, hash)
     if not hash or hash == 0 or not W.PackedDB[name] then return nil end
@@ -137,6 +137,9 @@ function W.Format(text, original)
     text = string.gsub(text, "|A:[^|]+|a", "")
     text = string.gsub(text, "UE_COLOR:", "")
     if original then
+        original = string.gsub(original, "|c%x%x%x%x%x%x%x%x", "")
+        original = string.gsub(original, "|H.-|h(.-)|h", "%1")
+        original = string.gsub(original, "|T.-|t", "")
         local numbers = {}
         for value in string.gfind(original, "%d[%d,.]*") do table.insert(numbers, (string.gsub(value, "[,.]+$", ""))) end
         text = string.gsub(text, "%$(%d+)", function(index) return numbers[tonumber(index)] or ("$" .. index) end)
@@ -176,24 +179,29 @@ function W.Missing(module, key, original)
     if not log[signature] then
         local count = 0
         for _ in pairs(log) do count = count + 1 end
-        if count >= 300 then return end
+        if count >= 1000 then return end
         log[signature] = string.sub(original, 1, 4000)
     end
 end
-function W.Replace(widget, translation, module)
+function W.Replace(widget, translation, module, source)
     if not widget or type(widget.GetText) ~= "function" or not translation then return false end
     local current = widget:GetText()
     local previous = W.originals[widget]
-    if previous and current == previous.translated then return true end
+    if previous and current == previous.translated then
+        if source then previous.text = source end
+        if translation == previous.translated then return true end
+        current = previous.text
+    end
     local font, size, flags
     if widget.GetFont then font, size, flags = widget:GetFont() end
     if previous and font == W.font then font, size, flags = previous.font, previous.size, previous.flags end
-    W.originals[widget] = {text = current, translated = translation, font = font, size = size, flags = flags, module = module}
+    W.originals[widget] = {text = source or current, translated = translation, font = font, size = size, flags = flags, module = module}
     if widget.SetFont then widget:SetFont(W.font, size or W.db.fontSize, flags) end
     widget:SetText(translation)
     return true
 end
 function W.Restore(module)
+    local restoring = W.restoring; W.restoring = true
     for widget, value in pairs(W.originals) do
         if not module or value.module == module then
             if widget:GetText() == value.translated then
@@ -203,8 +211,9 @@ function W.Restore(module)
             W.originals[widget] = nil
         end
     end
+    W.restoring = restoring
 end
-function W.TranslateWidget(widget, database, numbers, module)
+function W.ClearReusedWidget(widget)
     if not widget or not widget.GetText then return end
     local previous = W.originals[widget]
     if previous and widget:GetText() == previous.translated then return end
@@ -213,7 +222,17 @@ function W.TranslateWidget(widget, database, numbers, module)
         if font == W.font and previous.font then widget:SetFont(previous.font, previous.size, previous.flags) end
         W.originals[widget] = nil
     end
-    W.Replace(widget, W.FindTranslation(database, widget:GetText(), numbers), module or database)
+end
+function W.TranslateWidget(widget, database, numbers, module)
+    if not widget or not widget.GetText then return end
+    local previous = W.originals[widget]
+    if previous and widget:GetText() == previous.translated then return end
+    W.ClearReusedWidget(widget)
+    local translation
+    if database == "tooltips" and W.DisplayTranslation then translation = W.DisplayTranslation(widget:GetText(), numbers)
+    else translation = W.FindTranslation(database, widget:GetText(), numbers) end
+    if translation then return W.Replace(widget, translation, module or database) end
+    if database == "tooltips" and W.RecordUntranslated then W.RecordUntranslated(module or database, widget:GetText()) end
 end
 function W.NewFrame(kind, name, parent, template)
     return CreateFrame(kind, name, parent or UIParent, template)

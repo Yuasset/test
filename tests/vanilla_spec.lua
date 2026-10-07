@@ -21,6 +21,10 @@ function Frame:RegisterForClicks(...) self.clicks = arg end
 function Frame:StartMoving() end
 function Frame:StopMovingOrSizing() end
 function Frame:Show()
+    if self.kind == "GameTooltip" then
+        local first = _G[self.name .. "TextLeft1"]
+        self.layoutText = first and first:GetText()
+    end
     local changed = not self.shown
     self.shown = true
     if changed and self.scripts.OnShow then
@@ -125,6 +129,10 @@ function GameTooltip:SetInventoryItem(unit, slot)
     nativeTooltipText(self, tooltipSource)
     return true, nil, 41
 end
+function GameTooltip:SetUnit(unit)
+    self:SetText("Attack")
+    return true
+end
 function ItemRefTooltip:SetHyperlink(link)
     self.lastLink = link
     nativeTooltipText(self, tooltipSource)
@@ -191,7 +199,7 @@ function LoggingCombat(value) if value ~= nil then combatLogging = value end; re
 
 local toc = assert(io.open("WoWTR.toc", "rb"))
 for line in toc:lines() do
-    if string.find(line, "%.lua%s*$") then dofile(string.gsub(line, "\\", "/")) end
+    if string.find(line, "%.lua%s*$") then dofile((string.gsub((string.gsub(line, "%s+$", "")), "\\", "/"))) end
 end
 toc:close()
 local W = WoWTRV
@@ -206,6 +214,8 @@ dispatch("ADDON_LOADED", "OtherAddon")
 check(not W.initialized, "Initializes for unrelated addon")
 dispatch("ADDON_LOADED", "WoWTR")
 check(W.initialized and W.db.enabled, "Initialization failed")
+check(not W.db.reader, "Separate reader should be optional by default")
+W.db.reader = true
 check(table.getn(WoWTRVanillaLog.errors) == 0, "Initialization errors")
 check(W.DataStats.quests > 4000, "Missing original quest corpus")
 check(W.DataStats.gossip > 50000 and W.DataStats.tooltips > 100000, "Incomplete hash corpus")
@@ -375,6 +385,120 @@ W.db.sellGrey = true; W.SellGrey()
 check(table.getn(sold) == 1 and sold[1] == 1, "Vendor sold valuable or locked item")
 W.db.enabled = false; W.SellGrey(); check(table.getn(sold) == 1, "Disabled addon sold items")
 W.db.enabled = true
+-- Visible text is translated inside the real quest widgets, without changing game API values.
+local nativeNames = {"QuestTitleText", "QuestDescription", "QuestObjectiveText", "QuestProgressTitleText", "QuestProgressText", "QuestRewardTitleText", "QuestRewardText", "QuestLogQuestTitle", "QuestLogQuestDescription", "QuestLogObjectivesText"}
+for _, name in ipairs(nativeNames) do
+    local parent = string.find(name, "^QuestLog") and QuestLogFrame or QuestFrame
+    parent:CreateFontString(name)
+end
+QuestLogDetailScrollFrame = CreateFrame("ScrollFrame", "QuestLogDetailScrollFrame", QuestLogFrame)
+local sourceTitle = "Your Place In The World"
+local sourceDescription = "Original quest description"
+local sourceObjectives = "Speak with Gornek."
+local nativeContext = {title=sourceTitle, description=sourceDescription, objectives=sourceObjectives, stage="log", id=4641, parent=QuestLogFrame}
+W.db.reader = false; W.readerEnglish = false; W.InterfaceText(); W.RenderQuest(nativeContext)
+check(QuestLogQuestTitle:GetText() == W.Format(W.Quests["4641"].Title), "Native quest title not translated")
+check(QuestLogQuestDescription:GetText() == W.Format(W.Quests["4641"].Description), "Native quest body remained English")
+check(QuestLogObjectivesText:GetText() == W.Format(W.Quests["4641"].Objectives), "Native quest objectives remained English")
+check(not W.reader:IsShown(), "Optional reader still covered the game")
+check(GetQuestLogTitle() == title, "Quest API source title was modified")
+W.readerEnglish = true; W.RenderQuest(nativeContext)
+check(QuestLogQuestTitle:GetText() == sourceTitle and QuestLogQuestDescription:GetText() == sourceDescription, "Native quest English toggle failed")
+W.readerEnglish = false; W.RenderQuest(nativeContext)
+W.db.questTitles = false; W.Changed("questTitles"); W.RenderQuest(nativeContext)
+check(QuestLogQuestTitle:GetText() == sourceTitle and QuestLogQuestDescription:GetText() ~= sourceDescription, "Quest title setting changed body translation")
+W.db.questTitles = true
+for _, pair in ipairs({{"details", "QuestDescription"}, {"progress", "QuestProgressText"}, {"reward", "QuestRewardText"}}) do
+    nativeContext.stage=pair[1]; nativeContext.parent=QuestFrame
+    W.RenderQuest(nativeContext)
+    local field = pair[1] == "details" and "Description" or (pair[1] == "progress" and "Progress" or "Completion")
+    check(_G[pair[2]]:GetText() == W.Format(W.Quests["4641"][field]), "Native NPC quest stage remained English")
+end
+nativeContext.stage="log"; nativeContext.parent=QuestLogFrame
+W.RenderQuest(nativeContext)
+local unknownContext = {title="Custom server quest", description="New untranslated quest body", objectives="Custom task", stage="log", parent=QuestLogFrame, id=987654}
+W.RenderQuest(unknownContext)
+check(QuestLogQuestDescription:GetText() == unknownContext.description, "Missing quest retained the previous Turkish body")
+check(QuestLogQuestDescription:GetFont() == "Fonts\\FRIZQT__.ttf", "Missing quest retained translation font")
+W.RenderQuest(nativeContext)
+W.db.quests=false; W.Changed("quests")
+check(QuestLogQuestDescription:GetText() == sourceDescription, "Quest disable did not restore native body")
+W.db.quests=true
+-- Anonymous labels and descendants are discovered, with immediate updates after installation.
+SpellBookFrame = CreateFrame("Frame", "SpellBookFrame", UIParent)
+SpellBookTitleText = SpellBookFrame:CreateFontString("SpellBookTitleText")
+SpellBookTitleText:SetText("Spellbook")
+local previousLabel = SpellBookFrame:CreateFontString(nil); previousLabel:SetText("Prev")
+local spellButton = CreateFrame("Button", "SpellButton1", SpellBookFrame)
+local spellLabel = spellButton:CreateFontString("SpellButton1SpellName"); spellLabel:SetText("Blood Fury")
+local rankLabel = spellButton:CreateFontString("SpellButton1SubSpellName"); rankLabel:SetText("Racial")
+SkillFrame = CreateFrame("Frame", "SkillFrame", UIParent)
+local skillLabel = SkillFrame:CreateFontString("SkillRankFrame1SkillName"); skillLabel:SetText("Two-Handed Axes")
+local sectionLabel = SkillFrame:CreateFontString(nil); sectionLabel:SetText("Armor Proficiencies")
+PlayerFrame = CreateFrame("Frame", "PlayerFrame", UIParent)
+PlayerName = PlayerFrame:CreateFontString("PlayerName"); PlayerName:SetText("Attack")
+PlayerFrameHealthBarText = PlayerFrame:CreateFontString("PlayerFrameHealthBarText"); PlayerFrameHealthBarText:SetText("Health 80 / 80")
+local chatFrame = CreateFrame("ScrollingMessageFrame", "ChatFrameTest", PlayerFrame)
+local chatText = chatFrame:CreateFontString(nil); chatText:SetText("Attack")
+local editBox = CreateFrame("EditBox", "UserInputTest", SpellBookFrame); editBox:SetText("Attack")
+MinimapZoneText = Minimap:CreateFontString("MinimapZoneText"); MinimapZoneText:SetText("Valley of Trials")
+local questButton = CreateFrame("Button", "QuestLogTitle1", QuestLogFrame); questButton:SetText("  Your Place In The World")
+questButton:GetFontString().name = "QuestLogTitle1NormalText"
+local savedTitle, savedObjective = title, objective
+title=sourceTitle; objective="Speak with Gornek. You recall Kaltunk marking your map."
+W.InterfaceText()
+check(SpellBookTitleText:GetText()=="Büyü Kitabı" and previousLabel:GetText()=="Önceki", "Named or anonymous spellbook label remained English")
+check(spellLabel:GetText()=="Kan Hiddeti" and rankLabel:GetText()=="Irksal", "Spell name/rank not localized")
+check(skillLabel:GetText()=="İki Elli Baltalar" and sectionLabel:GetText()=="Zırh Yetkinlikleri", "Skill list not localized")
+check(PlayerFrameHealthBarText:GetText()=="Sağlık 80 / 80", "Live health text not localized")
+check(MinimapZoneText:GetText()=="Sınamalar Vadisi", "Minimap region not localized")
+check(questButton:GetFontString():GetText()=="  "..W.Format(W.Quests["4641"].Title), "Quest list title not localized")
+title=savedTitle; objective=savedObjective
+check(PlayerName:GetText()=="Attack" and chatText:GetText()=="Attack" and editBox:GetText()=="Attack", "Player name, chat, or user input was altered")
+spellLabel:SetText("Heroic Strike"); PlayerFrameHealthBarText:SetText("Health 73 / 80")
+check(spellLabel:GetText()=="Kahramanca Vuruş" and PlayerFrameHealthBarText:GetText()=="Sağlık 73 / 80", "Dynamic UI refresh reverted to English")
+W.db.ui=false; W.Changed("ui")
+check(spellLabel:GetText()=="Heroic Strike" and previousLabel:GetText()=="Prev", "UI disable failed to restore scanned widgets")
+W.db.ui=true; W.Changed("ui")
+check(spellLabel:GetText()=="Kahramanca Vuruş", "UI re-enable failed")
+GameTooltip:SetText("Tough Jerky")
+check(GameTooltipTextLeft1:GetText()=="Sert Kurutulmuş Et", "Item name not translated")
+check(GameTooltip.layoutText=="Sert Kurutulmuş Et", "Tooltip backdrop was not reflowed after translation")
+GameTooltip:SetUnit("target")
+check(GameTooltipTextLeft1:GetText()=="Attack", "Unit proper name was translated")
+local hearthstone = "Use: Returns you to Durotar. Speak to an Innkeeper in a different place to change your home location."
+local hearthTranslation = W.DisplayTranslation(hearthstone,true)
+check(hearthTranslation and string.find(hearthTranslation,"Durotar",1,true) and not string.find(hearthTranslation,"Speak",1,true), "Hearthstone dynamic location not translated")
+check(string.find(W.DisplayTranslation(hearthstone.." (30 Min Cooldown)",true),"30 dakika",1,true), "Hearthstone cooldown lost")
+local fury = W.DisplayTranslation("Increases attack power by 2 and damage done by magical spells and effects by up to 1 for 15 sec. Reduces healing effects on you by 25% for 25 sec.",true)
+check(fury and string.find(fury,"gücünü 2",1,true) and string.find(fury,"%25",1,true) and string.find(fury,"15 saniye",1,true), "OctoWoW Blood Fury mechanics/numbers were lost")
+check(W.Format("$1 güç", "|cffffd2001,234|r power")=="1,234 güç", "Color code digits polluted number placeholders")
+local function missingCount() local count=0; for _ in pairs(WoWTRVanillaLog.missing) do count=count+1 end; return count end
+local missingBefore = missingCount()
+W.RecordUntranslated("tooltips", "Unknown periodic text 100 damage")
+W.RecordUntranslated("tooltips", "Unknown periodic text 101 damage")
+check(missingCount()==missingBefore+1, "Changing numbers flooded missing-text capture")
+check(W.DisplayTranslation("Agility:",true)=="Çeviklik:", "Colon UI label remained English")
+check(W.DisplayTranslation("0.50 sec cast",true)=="0.50 saniyede yapılır", "Decimal cast time not preserved")
+check(W.DisplayTranslation("(12.7 damage per second)",true)=="(saniyede 12.7 hasar)", "DPS float not translated")
+check(W.DisplayTranslation("4.25% chance to dodge",true)=="%4.25 sıyrılma şansı", "Literal percent/template mismatch")
+check(W.DisplayTranslation("Requires Blacksmithing (225)",true)=="Gereksinim: Demircilik (225)", "Profession requirement not localized")
+check(W.DisplayTranslation("Attack has invited you to join a group.",true)=="Attack sizi bir gruba davet etti.", "Template changed a player proper name")
+check(W.DisplayTranslation("This item cannot stack.",true)=="Bu eşya istiflenemez.", "Inventory system error remained English")
+UIErrorsFrame=CreateFrame("MessageFrame","UIErrorsFrame",UIParent)
+function UIErrorsFrame:AddMessage(text, red, green, blue, id)
+    self.message=text; self.messageRed=red; self.messageID=id
+    return nil,"message",nil
+end
+W.InterfaceText()
+local errorResult=W.Capture(UIErrorsFrame:AddMessage("This item cannot stack.",1,0.2,0.3,17))
+check(UIErrorsFrame.message=="Bu eşya istiflenemez." and UIErrorsFrame.messageRed==1 and UIErrorsFrame.messageID==17, "Error frame lost translated message/color/id")
+check(errorResult.n==3 and errorResult[2]=="message", "Error frame hook changed nil return values")
+W.db.ui=false; W.Changed("ui")
+check(UIErrorsFrame:GetFont()=="Fonts\\FRIZQT__.ttf", "Error frame font not restored on disable")
+UIErrorsFrame:AddMessage("This item cannot stack.")
+check(UIErrorsFrame.message=="This item cannot stack.", "Disabled error message translation remained active")
+W.db.ui=true; W.Changed("ui")
 -- Error reports are bounded and repeated errors are not spammed.
 local function expectedError() error("intentional test") end
 W.Protected("expected-test", expectedError)
